@@ -4,8 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>赛博雪峰 - 思维顾问</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/tailwind.generated.css">
+  <script src="/vendor/mini-markdown.js"></script>
   <style>
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
     .auth-overlay {
       position: fixed;
       inset: 0;
@@ -14,6 +19,9 @@
       align-items: center;
       justify-content: center;
       z-index: 9999;
+    }
+    .auth-overlay.hidden {
+      display: none;
     }
     .chat-container::-webkit-scrollbar { width: 6px; }
     .chat-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
@@ -32,9 +40,52 @@
       0%, 80%, 100% { opacity: 0.3; }
       40% { opacity: 1; }
     }
+    .md-content h1, .md-content h2, .md-content h3 {
+      font-weight: 700;
+      line-height: 1.4;
+      margin: 0.8em 0 0.4em;
+    }
+    .md-content h1 { font-size: 1.125rem; }
+    .md-content h2 { font-size: 1rem; }
+    .md-content h3 { font-size: 0.95rem; }
+    .md-content p { margin: 0.5em 0; }
+    .md-content ul, .md-content ol {
+      margin: 0.5em 0;
+      padding-left: 1.25rem;
+    }
+    .md-content li { margin: 0.25em 0; }
+    .md-content blockquote {
+      margin: 0.75em 0;
+      padding-left: 0.75rem;
+      border-left: 3px solid #fdba74;
+      color: #6b7280;
+    }
+    .md-content code {
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.375rem;
+      background: #f3f4f6;
+      font-size: 0.9em;
+    }
+    .md-content pre {
+      overflow-x: auto;
+      margin: 0.75em 0;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      background: #111827;
+      color: #f9fafb;
+    }
+    .md-content pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+    .md-content a {
+      color: #ea580c;
+      text-decoration: underline;
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 h-screen overflow-hidden">
   <!-- 认证遮罩 -->
   <div id="auth-overlay" class="auth-overlay hidden">
     <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full mx-4">
@@ -86,7 +137,7 @@
     </div>
   </nav>
 
-  <main class="max-w-4xl mx-auto p-4">
+  <main class="max-w-4xl mx-auto flex h-[calc(100vh-80px)] flex-col overflow-hidden p-4">
     <!-- 身份卡片（可折叠） -->
     <div id="skill-info" class="bg-white rounded-xl shadow-md mb-4 hidden">
       <!-- 标题栏（可点击） -->
@@ -130,8 +181,8 @@
     </div>
 
     <!-- 对话区域 -->
-    <div class="bg-white rounded-xl shadow-md">
-      <div id="chat-messages" class="chat-container h-[400px] overflow-y-auto p-4 space-y-3">
+    <div class="flex min-h-0 flex-1 flex-col bg-white rounded-xl shadow-md">
+      <div id="chat-messages" class="chat-container min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
         <div class="text-center text-gray-400 py-8">
           <div class="text-4xl mb-3">🎯</div>
           <p>用张雪峰的视角聊聊教育选择、职业规划、阶层流动</p>
@@ -361,8 +412,8 @@
         : 'bg-gray-50 text-gray-800 rounded-xl px-4 py-3 max-w-[90%]';
 
       const contentDiv = document.createElement('div');
-      contentDiv.className = 'text-sm whitespace-pre-wrap';
-      contentDiv.textContent = content || '';
+      contentDiv.className = role === 'human' ? 'text-sm whitespace-pre-wrap' : 'md-content text-sm';
+      renderMessageContent(contentDiv, role, content || '');
 
       bubble.appendChild(contentDiv);
       row.appendChild(bubble);
@@ -474,7 +525,7 @@
         contentWrapper.className = 'space-y-3';
 
         const contentDiv = document.createElement('div');
-        contentDiv.className = 'text-sm whitespace-pre-wrap';
+        contentDiv.className = 'md-content text-sm';
         
         const statusDiv = document.createElement('div');
         statusDiv.className = 'inline-flex items-center gap-2 text-xs text-gray-400';
@@ -498,7 +549,7 @@
       }
 
       activeStreamMessage.content = content;
-      activeStreamMessage.contentDiv.textContent = content;
+      renderMessageContent(activeStreamMessage.contentDiv, 'ai', content);
       scrollChatToBottom();
     }
 
@@ -626,6 +677,26 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    function renderMarkdown(text) {
+      if (!window.marked) {
+        return escapeHtml(text).replace(/\n/g, '<br>');
+      }
+
+      return marked.parse(text, {
+        breaks: true,
+        gfm: true,
+      });
+    }
+
+    function renderMessageContent(element, role, content) {
+      if (role === 'human') {
+        element.textContent = content;
+        return;
+      }
+
+      element.innerHTML = renderMarkdown(content);
     }
   </script>
 </body>

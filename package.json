@@ -1,15 +1,12 @@
 {
-  "name": "camera-agent",
+  "name": "cyberxuefeng",
   "version": "1.0.0",
-  "description": "AI Agent for camera monitoring using LangChain",
+  "description": "AI Agent for single skill using LangChain",
   "type": "module",
   "scripts": {
-    "start": "node test3.js",
-    "start:legacy": "node test.js",
-    "start:sdk": "node test2.js",
-    "start:agent": "node test4.js",
-    "zhangxuefeng": "node server.js",
-    "dev": "node server.js"
+    "build:css": "node scripts/build-tailwind-css.mjs",
+    "zhangxuefeng": "npm run build:css && node server.js",
+    "dev": "npm run build:css && node server.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

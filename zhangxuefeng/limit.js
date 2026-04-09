@@ -57,7 +57,7 @@ function checkRateLimit(key) {
     if (record.count >= RATE_LIMIT_MAX) {
       // 超过限制
       const retryAfter = Math.ceil((RATE_LIMIT_WINDOW - (now - record.startTime)) / 1000);
-      return { allowed: false, retryAfter };
+      return { allowed: false, retryAfter, remaining: 0 };
     }
     // 增加计数
     record.count++;
@@ -133,7 +133,7 @@ router.get('/status', (req, res) => {
     rateLimit: {
       limit: RATE_LIMIT_MAX,
       window: '1分钟',
-      remaining: record ? RATE_LIMIT_MAX - record.count : RATE_LIMIT_MAX,
+      remaining: record ? Math.max(0, RATE_LIMIT_MAX - record.count) : RATE_LIMIT_MAX,
       currentCount: record ? record.count : 0
     }
   });

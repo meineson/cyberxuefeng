@@ -167,6 +167,18 @@ RATE_LIMIT_MAX = 5
 
 ---
 
+## 2026-04-09 前端 CDN 本地化 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 本地样式缓存 | `scripts/build-tailwind-css.mjs`, `public/css/tailwind.generated.css` | 用本地 Tailwind 编译产物替换页面对 `cdn.tailwindcss.com` 的依赖 |
+| 本地 Markdown 解析 | `public/vendor/mini-markdown.js` | 用本地轻量解析脚本替换 `marked` CDN |
+| 页面引用切换 | `public/index.html` | 所有前端外链 CDN 改为本地资源引用 |
+
+---
+
 ## 2026-04-09 后端前置搜索 ✅ 完成
 
 ### 完成内容
