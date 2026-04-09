@@ -83,6 +83,13 @@
       color: #ea580c;
       text-decoration: underline;
     }
+    /* 防止技能详情展开后挤压聊天输入区 */
+    #skill-detail {
+      max-height: min(42vh, 420px);
+      overflow-y: auto;
+    }
+    #skill-detail::-webkit-scrollbar { width: 6px; }
+    #skill-detail::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
   </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden">
@@ -99,7 +106,7 @@
           type="password" 
           id="auth-password" 
           placeholder="输入密码..."
-          class="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          class="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
           onkeypress="handleAuthKeyPress(event)"
         >
         <button 
@@ -139,7 +146,7 @@
 
   <main class="max-w-4xl mx-auto flex h-[calc(100vh-80px)] flex-col overflow-hidden p-4">
     <!-- 身份卡片（可折叠） -->
-    <div id="skill-info" class="bg-white rounded-xl shadow-md mb-4 hidden">
+    <div id="skill-info" class="bg-white rounded-xl shadow-md mb-4 hidden shrink-0">
       <!-- 标题栏（可点击） -->
       <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition" onclick="toggleSkillInfo()">
         <div class="flex items-center gap-3">
@@ -156,7 +163,7 @@
         </div>
       </div>
       <!-- 详情区域（默认隐藏） -->
-      <div id="skill-detail" class="hidden border-t px-4 pb-4">
+      <div id="skill-detail" class="hidden border-t border-gray-200 px-4 pb-4">
         <p class="text-gray-600 mt-3 text-sm" id="skill-desc"></p>
         <div class="mt-3 grid gap-3 md:grid-cols-2">
           <div class="rounded-lg border border-orange-100 bg-orange-50 p-3">
@@ -189,13 +196,13 @@
           <p class="text-sm mt-2">例如：「我家孩子想学新闻学，靠谱吗？」</p>
         </div>
       </div>
-      <div class="border-t p-4">
+      <div class="border-t border-gray-200 p-4">
         <div class="flex gap-3">
           <input 
             type="text" 
             id="user-input" 
             placeholder="输入你的问题..."
-            class="flex-1 border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+            class="flex-1 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
             onkeypress="handleKeyPress(event)"
           >
           <button 
@@ -210,7 +217,7 @@
     </div>
 
     <!-- 快捷提示 -->
-    <div class="mt-4 flex flex-wrap gap-2">
+    <div class="mt-4 flex flex-wrap gap-2 shrink-0">
       <button onclick="quickAsk('我家孩子想学新闻学，靠谱吗？')" class="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-full text-sm transition">
         新闻学靠谱吗？
       </button>
