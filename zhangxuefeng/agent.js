@@ -19,7 +19,7 @@ export async function createAgent() {
   }
   
   const skill = await loadSkill();
-  const model = process.env.MODEL || 'glm-5';
+  const model = process.env.OPENAI_MODEL || 'glm-5';
   const baseUrl = process.env.BASE_URL || process.env.OPENAI_BASE_URL;
   const apiKey = process.env.API_KEY || process.env.OPENAI_API_KEY;
   
