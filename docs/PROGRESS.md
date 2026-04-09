@@ -106,6 +106,80 @@ RATE_LIMIT_MAX = 5
 
 ---
 
+## 2026-04-09 技能文件按需读取 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 技能文件读取工具 | `zhangxuefeng/tools/skill-file-reader.js` | 新增 `read_skill_file`，支持按相对路径读取技能目录内文件 |
+| 工具统一注册 | `zhangxuefeng/tools/index.js`, `zhangxuefeng/agent.js` | `read_skill_file` 与 `web_search` 统一管理、统一返回 |
+| 技能目录约束 | `zhangxuefeng/skill.js` | 只允许读取 `SKILL_PATH` 对应技能目录下的文件，阻止越界访问 |
+| 接口文档同步 | `docs/API_SPEC.md` | 更新 `/api/skill/info` 返回示例 |
+
+---
+
+## 2026-04-09 技能目录浏览 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 目录浏览工具 | `zhangxuefeng/tools/skill-file-list.js` | 新增 `list_skill_files`，用于列出技能目录下真实文件名 |
+| 技能加载增强 | `zhangxuefeng/skill.js` | 新增 `listSkillFiles()`，并在 prompt 中要求先列目录再读文件 |
+| 工具统一注册 | `zhangxuefeng/tools/index.js` | 将 `list_skill_files` 纳入统一工具管理 |
+
+---
+
+## 2026-04-09 前端工具展示 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 技能卡片扩展 | `public/index.html` | 展示模型、搜索方式、可用工具列表 |
+| 工具说明提示 | `public/index.html` | 对 `read_skill_file`、`web_search` 的用途做前端说明 |
+
+---
+
+## 2026-04-09 前端流式增量渲染 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 历史消息一次性渲染 | `public/index.html` | 初始化时仅重绘历史消息，不在每个 chunk 时全量刷新 |
+| 当前回复增量更新 | `public/index.html` | 流式输出只更新当前 AI 气泡节点，避免页面闪烁 |
+| 加载态收口 | `public/index.html` | typing indicator 与最终回复复用同一气泡生命周期 |
+| 生成中状态延续 | `public/index.html` | 首段文本出现后仍保留“继续生成中”提示，直到收到 `done` 事件 |
+
+---
+
+## 2026-04-09 时效性问题强制搜索 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 时效性问题识别 | `zhangxuefeng/agent.js` | 对“最新/今年/分数线/就业率/排名/政策”等问题命中强制搜索条件 |
+| 本轮强制搜索提示 | `zhangxuefeng/agent.js` | 命中后在系统消息中要求优先调用 `web_search`，禁止直接凭旧记忆回答 |
+| 决策日志 | `zhangxuefeng/agent.js` | 增加 `[agent-decision]` 日志，打印强制搜索命中情况 |
+
+---
+
+## 2026-04-09 后端前置搜索 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 搜索工具函数导出 | `zhangxuefeng/tools/gemini-search.js` | 导出 `geminiSearch()` 供后端直接调用 |
+| 前置搜索编排 | `zhangxuefeng/agent.js` | 命中时效性问题时，后端先执行 `web_search`，再把结果注入本轮上下文 |
+| 决策日志补充 | `zhangxuefeng/agent.js` | 增加“开始执行前置 web_search / 前置 web_search 完成”日志 |
+| Gemini 搜索配置统一 | `.env`, `.env.sample`, `zhangxuefeng/tools/gemini-search.js` | 搜索密钥统一使用 `GEMINI_API_KEY`，并切换到 `openclaw` 风格的 `google_search` 工具参数 |
+
+---
+
 ## 代码复制
 
 已将全部相关代码复制到 `/Users/mac/AIagent/cyberxuefeng/`，结构：

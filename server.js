@@ -7,9 +7,16 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { setGlobalDispatcher, ProxyAgent } from 'undici';
 
 // 加载环境变量
 dotenv.config();
+
+const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+if (proxyUrl) {
+  setGlobalDispatcher(new ProxyAgent(proxyUrl));
+  console.log(`🔧 已启用代理: ${proxyUrl}`);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -163,10 +163,18 @@
   "success": true,
   "skill": {
     "name": "zhangxuefeng-perspective",
-    "description": "张雪峰的思维框架..."
+    "description": "张雪峰的思维框架...",
+    "model": "glm-5",
+    "searchEnabled": true,
+    "searchType": "Gemini Google Search",
+    "tools": ["read_skill_file", "web_search"]
   }
 }
 ```
+
+说明：
+- `read_skill_file` 用于按相对路径读取当前技能目录下的补充资料，例如 `references/research/01-writings.md`
+- `web_search` 用于查询最新公开数据
 
 ---
 
@@ -220,6 +228,7 @@
 | `API_KEY` | LLM API 密钥 | `sk-sp-xxx` |
 | `BASE_URL` | LLM API 地址 | `https://coding.dashscope.aliyuncs.com/v1` |
 | `OPENAI_MODEL` | 模型名称 | `glm-5` |
+| `GEMINI_API_KEY` | Gemini 搜索 API 密钥 | `AIza...` |
 | `AUTH_PASSWORD` | 访问密码 | `zhangxuefeng2026` |
 | `SKILL_PATH` | 技能路径 | `/Users/mac/.agents/skills/zhangxuefeng-perspective` |
 | `PORT` | 服务端口 | `3000` |

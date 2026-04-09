@@ -6,27 +6,34 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+function logWebSearch(message, extra) {
+  const timestamp = new Date().toISOString();
+  if (extra === undefined) {
+    console.log(`[web_search][${timestamp}] ${message}`);
+    return;
+  }
+
+  console.log(`[web_search][${timestamp}] ${message}`, extra);
+}
 
 /**
  * 使用 Gemini + Google Search grounding 进行搜索
  */
-async function geminiSearch(query) {
-  if (!GOOGLE_API_KEY) {
-    return '⚠️ 未配置 GOOGLE_API_KEY，无法搜索';
+export async function geminiSearch(query) {
+  logWebSearch('调用开始', { query });
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+
+  if (!geminiApiKey) {
+    logWebSearch('调用失败：未配置 GEMINI_API_KEY');
+    return '⚠️ 未配置 GEMINI_API_KEY，无法搜索';
   }
 
-  const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+  const genAI = new GoogleGenerativeAI(geminiApiKey);
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     tools: [
       {
-        googleSearchRetrieval: {
-          dynamicRetrievalConfig: {
-            mode: 'MODE_DYNAMIC',
-            dynamicThreshold: 0.3, // 更低的阈值，更容易触发搜索
-          }
-        }
+        google_search: {}
       }
     ],
   });
@@ -58,9 +65,19 @@ ${query}
         output += `\n\n📊 来源：${sources.join('、')}`;
       }
     }
+
+    logWebSearch('调用成功', {
+      query,
+      outputLength: output.length,
+      sourceCount: groundingMetadata?.groundingChunks?.length || 0,
+    });
     
     return output;
   } catch (error) {
+    logWebSearch('调用异常', {
+      query,
+      error: error.message,
+    });
     console.error('Gemini search error:', error);
     return `搜索失败：${error.message}`;
   }

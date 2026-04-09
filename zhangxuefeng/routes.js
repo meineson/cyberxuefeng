@@ -7,6 +7,11 @@ import { clearCache } from './skill.js';
 
 const router = Router();
 
+function logChatRequest(message, extra) {
+  const timestamp = new Date().toISOString();
+  console.log(`[chat][${timestamp}] ${message}`, extra);
+}
+
 // Agent 实例（懒加载）
 let agent = null;
 
@@ -24,14 +29,72 @@ async function getAgent() {
  */
 router.post('/chat', async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], stream = false } = req.body;
     
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ error: 'message is required' });
     }
+
+    logChatRequest('收到请求', {
+      stream,
+      historyLength: Array.isArray(history) ? history.length : 0,
+      messagePreview: message.slice(0, 120),
+    });
     
     const agentInstance = await getAgent();
+
+    if (stream) {
+      logChatRequest('开始 SSE 响应');
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders?.();
+
+      let fullReply = '';
+      let chunkCount = 0;
+
+      try {
+        for await (const chunk of agentInstance.streamChat(message, history)) {
+          chunkCount += 1;
+          if (chunkCount === 1) {
+            logChatRequest('收到首个流式 chunk', {
+              preview: chunk.slice(0, 120),
+            });
+          }
+
+          fullReply += chunk;
+          res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+        }
+
+        logChatRequest('流式输出完成', {
+          chunkCount,
+          replyLength: fullReply.length,
+        });
+
+        res.write(`data: ${JSON.stringify({
+          type: 'done',
+          reply: fullReply,
+          timestamp: new Date().toISOString(),
+        })}\n\n`);
+      } catch (error) {
+        logChatRequest('流式输出异常', {
+          chunkCount,
+          error: error.message,
+        });
+        console.error('Chat stream error:', error);
+        res.write(`data: ${JSON.stringify({
+          type: 'error',
+          error: error.message || 'Internal server error',
+        })}\n\n`);
+      }
+
+      return res.end();
+    }
+
     const reply = await agentInstance.chat(message, history);
+    logChatRequest('普通输出完成', {
+      replyLength: String(reply || '').length,
+    });
     
     res.json({ 
       success: true,

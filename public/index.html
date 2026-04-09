@@ -107,6 +107,22 @@
       <!-- 详情区域（默认隐藏） -->
       <div id="skill-detail" class="hidden border-t px-4 pb-4">
         <p class="text-gray-600 mt-3 text-sm" id="skill-desc"></p>
+        <div class="mt-3 grid gap-3 md:grid-cols-2">
+          <div class="rounded-lg border border-orange-100 bg-orange-50 p-3">
+            <p class="text-xs font-semibold tracking-wide text-orange-700">运行配置</p>
+            <div class="mt-2 space-y-1 text-sm text-gray-700">
+              <p>模型：<span id="skill-model" class="font-medium text-gray-900">加载中...</span></p>
+              <p>搜索：<span id="skill-search-type" class="font-medium text-gray-900">加载中...</span></p>
+            </div>
+          </div>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p class="text-xs font-semibold tracking-wide text-gray-600">可用工具</p>
+            <div id="skill-tools" class="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
+              <span class="rounded-full bg-white px-2 py-1 ring-1 ring-gray-200">加载中...</span>
+            </div>
+          </div>
+        </div>
+        <div id="skill-tool-tips" class="mt-3 hidden rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900"></div>
         <div class="mt-3 text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
           ⚠️ 角色扮演基于张雪峰生前公开言论，非本人观点。2026年3月24日离世。
         </div>
@@ -167,6 +183,7 @@
     let chatHistory = [];
     let isLoading = false;
     let skillInfoExpanded = false;
+    let activeStreamMessage = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
       await checkAuth();
@@ -262,9 +279,40 @@
           document.getElementById('skill-info').classList.remove('hidden');
           document.getElementById('skill-name').textContent = data.skill.name;
           document.getElementById('skill-desc').textContent = data.skill.description;
+          renderSkillMeta(data.skill);
         }
       } catch (e) {
         console.error('Failed to load skill info:', e);
+      }
+    }
+
+    function renderSkillMeta(skill) {
+      document.getElementById('skill-model').textContent = skill.model || '未配置';
+      document.getElementById('skill-search-type').textContent = skill.searchType || '无';
+
+      const tools = Array.isArray(skill.tools) ? skill.tools : [];
+      const toolsContainer = document.getElementById('skill-tools');
+      toolsContainer.innerHTML = tools.length
+        ? tools.map(tool => `
+            <span class="rounded-full bg-white px-2 py-1 ring-1 ring-gray-200">${escapeHtml(tool)}</span>
+          `).join('')
+        : '<span class="rounded-full bg-white px-2 py-1 ring-1 ring-gray-200">无</span>';
+
+      const tips = [];
+      if (tools.includes('read_skill_file')) {
+        tips.push('`read_skill_file`：按需读取当前技能目录下的补充资料，例如 references/research 下的文件。');
+      }
+      if (tools.includes('web_search')) {
+        tips.push('`web_search`：查询最新公开数据，用于补充时效性信息。');
+      }
+
+      const tipsContainer = document.getElementById('skill-tool-tips');
+      if (tips.length > 0) {
+        tipsContainer.classList.remove('hidden');
+        tipsContainer.innerHTML = tips.map(tip => `<p>${tip}</p>`).join('');
+      } else {
+        tipsContainer.classList.add('hidden');
+        tipsContainer.innerHTML = '';
       }
     }
 
@@ -281,31 +329,189 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
     }
 
+    function getChatContainer() {
+      return document.getElementById('chat-messages');
+    }
+
+    function scrollChatToBottom() {
+      const container = getChatContainer();
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+
+    function createEmptyStateElement() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'text-center text-gray-400 py-8';
+      wrapper.innerHTML = `
+        <div class="text-4xl mb-3">🎯</div>
+        <p>用张雪峰的视角聊聊教育选择、职业规划、阶层流动</p>
+        <p class="text-sm mt-2">例如：「我家孩子想学新闻学，靠谱吗？」</p>
+      `;
+      return wrapper;
+    }
+
+    function createMessageElement(role, content, options = {}) {
+      const row = document.createElement('div');
+      row.className = `message-enter ${role === 'human' ? 'flex justify-end' : ''}`;
+
+      const bubble = document.createElement('div');
+      bubble.className = role === 'human'
+        ? 'bg-orange-100 text-gray-800 rounded-xl px-4 py-3 max-w-[80%]'
+        : 'bg-gray-50 text-gray-800 rounded-xl px-4 py-3 max-w-[90%]';
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'text-sm whitespace-pre-wrap';
+      contentDiv.textContent = content || '';
+
+      bubble.appendChild(contentDiv);
+      row.appendChild(bubble);
+
+      if (options.pending) {
+        bubble.dataset.pending = 'true';
+      }
+
+      return { row, bubble, contentDiv };
+    }
+
+    function createTypingIndicator() {
+      const indicator = document.createElement('div');
+      indicator.className = 'typing-indicator flex gap-1';
+      indicator.innerHTML = `
+        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+        <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+      `;
+      return indicator;
+    }
+
+    function createTypingIndicatorElement() {
+      const row = document.createElement('div');
+      row.className = 'message-enter';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bg-gray-50 text-gray-800 rounded-xl px-4 py-3 max-w-[90%]';
+
+      const indicator = createTypingIndicator();
+
+      bubble.appendChild(indicator);
+      row.appendChild(bubble);
+
+      return { row, bubble };
+    }
+
+    function clearPendingStreamMessage() {
+      if (activeStreamMessage?.row?.parentNode) {
+        activeStreamMessage.row.parentNode.removeChild(activeStreamMessage.row);
+      }
+      activeStreamMessage = null;
+    }
+
+    function ensureEmptyState() {
+      const container = getChatContainer();
+      if (!container.children.length) {
+        container.appendChild(createEmptyStateElement());
+      }
+    }
+
+    function removeEmptyState() {
+      const container = getChatContainer();
+      const firstChild = container.firstElementChild;
+      if (firstChild && firstChild.classList.contains('text-center')) {
+        container.removeChild(firstChild);
+      }
+    }
+
     function renderMessages() {
-      const container = document.getElementById('chat-messages');
-      
+      const container = getChatContainer();
+      container.innerHTML = '';
+      clearPendingStreamMessage();
+
       if (chatHistory.length === 0) {
-        container.innerHTML = `
-          <div class="text-center text-gray-400 py-8">
-            <div class="text-4xl mb-3">🎯</div>
-            <p>用张雪峰的视角聊聊教育选择、职业规划、阶层流动</p>
-            <p class="text-sm mt-2">例如：「我家孩子想学新闻学，靠谱吗？」</p>
-          </div>
-        `;
+        ensureEmptyState();
         return;
       }
 
-      container.innerHTML = chatHistory.map(msg => `
-        <div class="message-enter ${msg.role === 'human' ? 'flex justify-end' : ''}">
-          <div class="${msg.role === 'human' 
-            ? 'bg-orange-100 text-gray-800 rounded-xl px-4 py-3 max-w-[80%]'
-            : 'bg-gray-50 text-gray-800 rounded-xl px-4 py-3 max-w-[90%]'}">
-            <div class="text-sm whitespace-pre-wrap">${escapeHtml(msg.content)}</div>
-          </div>
-        </div>
-      `).join('');
+      chatHistory.forEach((msg) => {
+        const element = createMessageElement(msg.role, msg.content);
+        container.appendChild(element.row);
+      });
 
-      container.scrollTop = container.scrollHeight;
+      scrollChatToBottom();
+    }
+
+    function appendMessage(role, content) {
+      removeEmptyState();
+      const container = getChatContainer();
+      const element = createMessageElement(role, content);
+      container.appendChild(element.row);
+      scrollChatToBottom();
+      return element;
+    }
+
+    function startPendingAiMessage() {
+      removeEmptyState();
+      clearPendingStreamMessage();
+
+      const container = getChatContainer();
+      const element = createTypingIndicatorElement();
+      container.appendChild(element.row);
+      activeStreamMessage = {
+        ...element,
+        content: '',
+        isTyping: true,
+      };
+      scrollChatToBottom();
+    }
+
+    function updatePendingAiMessage(content) {
+      if (!activeStreamMessage) {
+        startPendingAiMessage();
+      }
+
+      if (activeStreamMessage.isTyping) {
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'space-y-3';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'text-sm whitespace-pre-wrap';
+        
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'inline-flex items-center gap-2 text-xs text-gray-400';
+
+        const statusText = document.createElement('span');
+        statusText.textContent = '继续生成中';
+
+        const indicator = createTypingIndicator();
+        indicator.className = 'typing-indicator flex gap-1 scale-75 origin-left';
+
+        statusDiv.appendChild(statusText);
+        statusDiv.appendChild(indicator);
+        contentWrapper.appendChild(contentDiv);
+        contentWrapper.appendChild(statusDiv);
+
+        activeStreamMessage.bubble.innerHTML = '';
+        activeStreamMessage.bubble.appendChild(contentWrapper);
+        activeStreamMessage.contentDiv = contentDiv;
+        activeStreamMessage.statusDiv = statusDiv;
+        activeStreamMessage.isTyping = false;
+      }
+
+      activeStreamMessage.content = content;
+      activeStreamMessage.contentDiv.textContent = content;
+      scrollChatToBottom();
+    }
+
+    function finishPendingAiMessage(finalContent) {
+      const content = finalContent || activeStreamMessage?.content || '';
+      clearPendingStreamMessage();
+
+      if (!content) {
+        ensureEmptyState();
+        return;
+      }
+
+      appendMessage('ai', content);
     }
 
     async function sendMessage() {
@@ -318,8 +524,9 @@
       setLoading(true);
 
       chatHistory.push({ role: 'human', content: message });
-      renderMessages();
+      appendMessage('human', message);
       saveHistory();
+      startPendingAiMessage();
 
       try {
         const res = await fetch(API_URL, {
@@ -327,22 +534,57 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
-            history: chatHistory.slice(0, -1)
+            history: chatHistory.slice(0, -1),
+            stream: true,
           })
         });
 
-        const data = await res.json();
-        
-        if (data.success) {
-          chatHistory.push({ role: 'ai', content: data.reply });
-        } else {
-          chatHistory.push({ role: 'ai', content: '抱歉，出错了：' + data.error });
+        if (!res.ok || !res.body) {
+          throw new Error('响应异常');
         }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalReply = '';
+        let streamedReply = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+
+          for (const eventText of events) {
+            const dataLine = eventText
+              .split('\n')
+              .find(line => line.startsWith('data: '));
+
+            if (!dataLine) continue;
+
+            const payload = JSON.parse(dataLine.slice(6));
+            if (payload.type === 'chunk') {
+              streamedReply += payload.content;
+              updatePendingAiMessage(streamedReply);
+            } else if (payload.type === 'done') {
+              finalReply = payload.reply || streamedReply;
+            } else if (payload.type === 'error') {
+              throw new Error(payload.error || '流式输出失败');
+            }
+          }
+        }
+
+        const aiReply = finalReply || streamedReply || '抱歉，未收到有效回复';
+        chatHistory.push({ role: 'ai', content: aiReply });
+        finishPendingAiMessage(aiReply);
       } catch (e) {
-        chatHistory.push({ role: 'ai', content: '网络错误，请稍后重试' });
+        const errorReply = '抱歉，出错了：' + (e.message || '网络错误，请稍后重试');
+        chatHistory.push({ role: 'ai', content: errorReply });
+        finishPendingAiMessage(errorReply);
       }
 
-      renderMessages();
       saveHistory();
       setLoading(false);
     }
@@ -350,32 +592,16 @@
     function setLoading(loading) {
       isLoading = loading;
       const btn = document.getElementById('send-btn');
-      const container = document.getElementById('chat-messages');
       
       btn.disabled = loading;
       btn.textContent = loading ? '...' : '发送';
-
-      if (loading) {
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message-enter';
-        loadingDiv.innerHTML = `
-          <div class="bg-gray-50 rounded-xl px-4 py-3">
-            <div class="typing-indicator flex gap-1">
-              <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-              <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-              <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-            </div>
-          </div>
-        `;
-        container.appendChild(loadingDiv);
-        container.scrollTop = container.scrollHeight;
-      }
     }
 
     function resetChat() {
       if (confirm('确定要清空对话历史吗？')) {
         chatHistory = [];
         localStorage.removeItem(STORAGE_KEY);
+        clearPendingStreamMessage();
         renderMessages();
         fetch('/api/chat/reset', { method: 'POST' }).catch(() => {});
       }
