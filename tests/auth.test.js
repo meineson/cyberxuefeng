@@ -3,7 +3,7 @@
  */
 import assert from 'assert';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = `http://localhost:${process.env.PORT || 80}`;
 
 async function testAuthStatus() {
   console.log('📝 测试: GET /api/auth/status');

@@ -23,7 +23,7 @@ const __dirname = dirname(__filename);
 
 // 创建 Express 应用
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 
 // 中间件
 app.use(cors());

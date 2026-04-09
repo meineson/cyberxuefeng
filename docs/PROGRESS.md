@@ -238,17 +238,17 @@ node tests/auth.test.js
 node tests/api.test.js
 
 # 认证测试
-curl -X POST http://localhost:3000/api/auth/verify \
+curl -X POST http://localhost:80/api/auth/verify \
   -H 'Content-Type: application/json' \
   -d '{"password":"zhangxuefeng2026"}'
 
 # 对话测试
-curl -X POST http://localhost:3000/api/chat \
+curl -X POST http://localhost:80/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"message":"我家孩子想学新闻学，靠谱吗？"}'
 
 # 查看限流状态
-curl http://localhost:3000/api/limit/status
+curl http://localhost:80/api/limit/status
 ```
 
 ---

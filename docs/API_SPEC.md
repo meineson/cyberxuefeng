@@ -2,7 +2,7 @@
 
 ## 基础信息
 
-- **Base URL**: `http://localhost:3000`
+- **Base URL**: `http://localhost:80`
 - **Content-Type**: `application/json`
 - **认证**: 需通过 `/api/auth/verify` 验证密码
 
@@ -231,6 +231,6 @@
 | `GEMINI_API_KEY` | Gemini 搜索 API 密钥 | `AIza...` |
 | `AUTH_PASSWORD` | 访问密码 | `zhangxuefeng2026` |
 | `SKILL_PATH` | 技能路径 | `/Users/mac/.agents/skills/zhangxuefeng-perspective` |
-| `PORT` | 服务端口 | `3000` |
+| `PORT` | 服务端口 | `80` |
 | `MAX_MESSAGE_LENGTH` | 最大消息长度（可选） | `300` |
 | `RATE_LIMIT_MAX` | 每分钟请求限制（可选） | `5` |
