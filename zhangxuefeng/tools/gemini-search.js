@@ -6,6 +6,12 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+const DEFAULT_GEMINI_SEARCH_MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-3-flash-preview',
+];
+
 function logWebSearch(message, extra) {
   const timestamp = new Date().toISOString();
   if (extra === undefined) {
@@ -16,11 +22,21 @@ function logWebSearch(message, extra) {
   console.log(`[web_search][${timestamp}] ${message}`, extra);
 }
 
+function getSearchModels() {
+  const manualModel = process.env.GEMINI_MODEL?.trim();
+  if (manualModel) {
+    return [manualModel];
+  }
+
+  return DEFAULT_GEMINI_SEARCH_MODELS;
+}
+
 /**
  * 使用 Gemini + Google Search grounding 进行搜索
  */
 export async function geminiSearch(query) {
-  logWebSearch('调用开始', { query });
+  const models = getSearchModels();
+  logWebSearch('调用开始', { query, models });
   const geminiApiKey = process.env.GEMINI_API_KEY;
 
   if (!geminiApiKey) {
@@ -29,15 +45,6 @@ export async function geminiSearch(query) {
   }
 
   const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    tools: [
-      {
-        google_search: {}
-      }
-    ],
-  });
-
   // 搜索提示词 - 专注于数据查询
   const searchPrompt = `请搜索并提取以下信息的最新数据：
 ${query}
@@ -47,40 +54,51 @@ ${query}
 2. 注明数据来源和时效性
 3. 如果有多个来源，列出主要来源`;
 
-  try {
-    const result = await model.generateContent(searchPrompt);
-    const response = result.response;
-    
-    let output = response.text();
-    
-    // 提取搜索来源
-    const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-    if (groundingMetadata?.groundingChunks?.length > 0) {
-      const sources = groundingMetadata.groundingChunks
-        .map(c => c.web?.title || c.web?.uri)
-        .filter(Boolean)
-        .slice(0, 5);
-      
-      if (sources.length > 0) {
-        output += `\n\n📊 来源：${sources.join('、')}`;
-      }
-    }
+  let lastError = null;
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        tools: [{ google_search: {} }],
+      });
 
-    logWebSearch('调用成功', {
-      query,
-      outputLength: output.length,
-      sourceCount: groundingMetadata?.groundingChunks?.length || 0,
-    });
-    
-    return output;
-  } catch (error) {
-    logWebSearch('调用异常', {
-      query,
-      error: error.message,
-    });
-    console.error('Gemini search error:', error);
-    return `搜索失败：${error.message}`;
+      const result = await model.generateContent(searchPrompt);
+      const response = result.response;
+      let output = response.text();
+
+      // 提取搜索来源
+      const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+      if (groundingMetadata?.groundingChunks?.length > 0) {
+        const sources = groundingMetadata.groundingChunks
+          .map((c) => c.web?.title || c.web?.uri)
+          .filter(Boolean)
+          .slice(0, 5);
+
+        if (sources.length > 0) {
+          output += `\n\n📊 来源：${sources.join('、')}`;
+        }
+      }
+
+      logWebSearch('调用成功', {
+        query,
+        model: modelName,
+        outputLength: output.length,
+        sourceCount: groundingMetadata?.groundingChunks?.length || 0,
+      });
+
+      return output;
+    } catch (error) {
+      lastError = error;
+      logWebSearch('模型调用异常，准备切换下一个模型', {
+        query,
+        model: modelName,
+        error: error.message,
+      });
+    }
   }
+
+  console.error('Gemini search error:', lastError);
+  return `搜索失败：${lastError?.message || '未知错误'}`;
 }
 
 /**

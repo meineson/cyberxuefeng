@@ -192,6 +192,18 @@ RATE_LIMIT_MAX = 5
 
 ---
 
+## 2026-04-10 搜索功能调整 ✅ 完成
+
+### 完成内容
+
+| 功能 | 文件 | 说明 |
+|------|------|------|
+| 取消前置强制搜索 | `zhangxuefeng/agent.js` | 移除“命中关键词后后端先调 web_search”的编排，恢复由 Agent 在推理中自主调用工具 |
+| 搜索模型切换能力 | `zhangxuefeng/tools/gemini-search.js` | 新增 `GEMINI_MODEL` 手工切换；未配置时自动在 `gemini-2.5-flash-lite`、`gemini-2.5-flash`、`gemini-3-flash-preview` 间回退 |
+| 环境变量示例补充 | `.env.sample` | 增加 `GEMINI_MODEL` 可选配置说明 |
+
+---
+
 ## 代码复制
 
 已将全部相关代码复制到 `/Users/mac/AIagent/cyberxuefeng/`，结构：
