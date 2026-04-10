@@ -185,10 +185,10 @@ RATE_LIMIT_MAX = 5
 
 | 功能 | 文件 | 说明 |
 |------|------|------|
-| 搜索工具函数导出 | `zhangxuefeng/tools/gemini-search.js` | 导出 `geminiSearch()` 供后端直接调用 |
+| 搜索工具函数导出 | `zhangxuefeng/tools/websearch.js` | 导出 `geminiSearch()` 供后端直接调用 |
 | 前置搜索编排 | `zhangxuefeng/agent.js` | 命中时效性问题时，后端先执行 `web_search`，再把结果注入本轮上下文 |
 | 决策日志补充 | `zhangxuefeng/agent.js` | 增加“开始执行前置 web_search / 前置 web_search 完成”日志 |
-| Gemini 搜索配置统一 | `.env`, `.env.sample`, `zhangxuefeng/tools/gemini-search.js` | 搜索密钥统一使用 `GEMINI_API_KEY`，并切换到 `openclaw` 风格的 `google_search` 工具参数 |
+| Gemini 搜索配置统一 | `.env`, `.env.sample`, `zhangxuefeng/tools/websearch.js` | 搜索密钥统一使用 `GEMINI_API_KEY`，并切换到 `openclaw` 风格的 `google_search` 工具参数 |
 
 ---
 
@@ -199,7 +199,7 @@ RATE_LIMIT_MAX = 5
 | 功能 | 文件 | 说明 |
 |------|------|------|
 | 取消前置强制搜索 | `zhangxuefeng/agent.js` | 移除“命中关键词后后端先调 web_search”的编排，恢复由 Agent 在推理中自主调用工具 |
-| 搜索模型切换能力 | `zhangxuefeng/tools/gemini-search.js` | 新增 `GEMINI_MODEL` 手工切换；未配置时自动在 `gemini-2.5-flash-lite`、`gemini-2.5-flash`、`gemini-3-flash-preview` 间回退 |
+| 搜索模型切换能力 | `zhangxuefeng/tools/websearch.js` | 新增 `GEMINI_MODEL` 手工切换；未配置时自动在 `gemini-2.5-flash-lite`、`gemini-2.5-flash`、`gemini-3-flash-preview` 间回退 |
 | 环境变量示例补充 | `.env.sample` | 增加 `GEMINI_MODEL` 可选配置说明 |
 
 ---

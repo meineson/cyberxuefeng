@@ -1,16 +1,18 @@
 /**
- * Gemini WebSearch 工具
- * 使用 Gemini API 的 Google Search grounding 进行搜索
+ * WebSearch 工具
+ * 支持 Gemini / Tavily 双提供方
  */
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { tavily } from '@tavily/core';
 
 const DEFAULT_GEMINI_SEARCH_MODELS = [
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
   'gemini-3-flash-preview',
 ];
+const DEFAULT_SEARCH_PROVIDER = 'gemini';
 
 function logWebSearch(message, extra) {
   const timestamp = new Date().toISOString();
@@ -20,6 +22,31 @@ function logWebSearch(message, extra) {
   }
 
   console.log(`[web_search][${timestamp}] ${message}`, extra);
+}
+
+function getSearchProvider() {
+  const provider = (process.env.SEARCH_PROVIDER || DEFAULT_SEARCH_PROVIDER).trim().toLowerCase();
+  if (provider === 'tavily') {
+    return 'tavily';
+  }
+  return 'gemini';
+}
+
+export function getSearchRuntimeInfo() {
+  const provider = getSearchProvider();
+  if (provider === 'tavily') {
+    return {
+      provider,
+      enabled: Boolean(process.env.TAVILY_API_KEY),
+      searchType: 'Tavily Search',
+    };
+  }
+
+  return {
+    provider: 'gemini',
+    enabled: Boolean(process.env.GEMINI_API_KEY),
+    searchType: 'Gemini Google Search',
+  };
 }
 
 function getSearchModels() {
@@ -101,12 +128,69 @@ ${query}
   return `搜索失败：${lastError?.message || '未知错误'}`;
 }
 
+export async function tavilySearch(query) {
+  logWebSearch('调用开始', { query, provider: 'tavily' });
+  const tavilyApiKey = process.env.TAVILY_API_KEY;
+
+  if (!tavilyApiKey) {
+    logWebSearch('调用失败：未配置 TAVILY_API_KEY');
+    return '⚠️ 未配置 TAVILY_API_KEY，无法搜索';
+  }
+
+  try {
+    const client = tavily({ apiKey: tavilyApiKey });
+    const result = await client.search(query, {
+      includeAnswer: 'advanced',
+      searchDepth: 'advanced',
+    });
+
+    const answer = result?.answer ? String(result.answer) : '';
+    const sources = Array.isArray(result?.results) ? result.results : [];
+    const topSources = sources
+      .map((item) => item?.title || item?.url)
+      .filter(Boolean)
+      .slice(0, 5);
+
+    let output = answer || '已完成搜索，但未返回摘要答案。';
+    if (topSources.length > 0) {
+      output += `\n\n📊 来源：${topSources.join('、')}`;
+    }
+
+    logWebSearch('调用成功', {
+      query,
+      provider: 'tavily',
+      outputLength: output.length,
+      sourceCount: sources.length,
+    });
+
+    return output;
+  } catch (error) {
+    logWebSearch('调用异常', {
+      query,
+      provider: 'tavily',
+      error: error.message,
+    });
+    return `搜索失败：${error?.message || '未知错误'}`;
+  }
+}
+
+export async function webSearch(query) {
+  const provider = getSearchProvider();
+  logWebSearch('提供方选择', { provider, query });
+
+  if (provider === 'tavily') {
+    return tavilySearch(query);
+  }
+
+  return geminiSearch(query);
+}
+
 /**
  * LangChain 工具定义
  */
 export const webSearchTool = tool(
   async ({ query }) => {
-    return await geminiSearch(query);
+    return await webSearch(query);
   },
   {
     name: 'web_search',
