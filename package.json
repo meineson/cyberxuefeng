@@ -6,7 +6,9 @@
   "scripts": {
     "build:css": "node scripts/build-tailwind-css.mjs",
     "zhangxuefeng": "npm run build:css && node server.js",
-    "dev": "npm run build:css && node server.js"
+    "dev": "npm run build:css && node server.js",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -26,6 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/node": "^4.2.2",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.1",
+    "wrangler": "^4.81.1"
   }
 }
