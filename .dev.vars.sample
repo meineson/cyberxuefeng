@@ -1,0 +1,9 @@
+API_KEY=
+BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+OPENAI_MODEL=glm-5
+AUTH_PASSWORD=sbxf2026
+SEARCH_PROVIDER=gemini
+GEMINI_API_KEY=
+# GEMINI_MODEL=gemini-2.5-flash-lite
+TAVILY_API_KEY=
+SKILL_SLUG=zhangxuefeng-perspective

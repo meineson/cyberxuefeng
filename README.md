@@ -123,16 +123,54 @@
 
 ---
 
-## 启动
+## 启动（Cloudflare Workers）
 
 ```bash
 npm install
-npm run zhangxuefeng
+npx wrangler kv namespace create cyberxuefeng-preview --preview --update-config=false
+npx wrangler kv namespace create cyberxuefeng-production --update-config=false
+# 把返回的 namespace id 填到 wrangler.jsonc
+npm run kv:sync-skill
+npm run dev
 ```
 
-启动后访问：
+本地启动后访问：
 
-- `http://localhost:80`
+- `http://localhost:8787`
+
+### 部署
+
+```bash
+npm run deploy
+```
+
+### 技能资料同步到 KV
+
+当前分支默认从 Cloudflare KV 读取技能内容，不再依赖本地 `SKILL_PATH`。
+
+```bash
+npm run kv:sync-skill
+```
+
+默认会把 `skills/zhangxuefeng-perspective` 下的文本资料上传到 `APP_KV`，并生成目录索引供：
+
+- `list_skill_files`
+- `read_skill_file`
+
+两个工具读取。
+
+### `wrangler.jsonc` 的 `vars` 与 `.dev.vars`
+
+- `wrangler.jsonc` 里的 `vars`：Worker 绑定的普通环境变量，适合放 **非敏感默认配置**
+- `.dev.vars`：本地开发时常被用来放 **敏感值**，但你当前安装的 Wrangler 是 `4.81.1`，建议不要把它当唯一来源
+
+这套项目里建议这样用：
+
+- `vars` 放：`SKILL_SLUG`、`SEARCH_PROVIDER`、`OPENAI_MODEL`、限流阈值
+- **不要**把 `API_KEY` 这类密钥写进 `vars`
+- 生产密钥用 `wrangler secret put`
+
+另外，本项目的 `kv_namespaces.APP_KV` 已设置 `"remote": true`，所以 `wrangler dev` 会直接访问你配置的远端 KV，而不是本地模拟 KV。
 
 ---
 
