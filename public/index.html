@@ -243,6 +243,18 @@
     let skillInfoExpanded = false;
     let activeStreamMessage = null;
 
+    function getAuthToken() {
+      const token = localStorage.getItem(AUTH_KEY);
+      return token && token !== 'verified' ? token : null;
+    }
+
+    function authHeaders(extra = {}) {
+      const token = getAuthToken();
+      return token
+        ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...extra }
+        : { 'Content-Type': 'application/json', ...extra };
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       await checkAuth();
     });
@@ -306,7 +318,7 @@
         const data = await res.json();
         
         if (data.success) {
-          localStorage.setItem(AUTH_KEY, 'verified');
+          localStorage.setItem(AUTH_KEY, password);
           document.getElementById('auth-overlay').classList.add('hidden');
           initApp();
         } else {
@@ -331,7 +343,7 @@
       renderMessages();
       
       try {
-        const res = await fetch('/api/skill/info');
+        const res = await fetch('/api/skill/info', { headers: authHeaders() });
         const data = await res.json();
         if (data.success) {
           document.getElementById('skill-info').classList.remove('hidden');
@@ -589,7 +601,7 @@
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders(),
           body: JSON.stringify({
             message,
             history: chatHistory.slice(0, -1),
@@ -661,7 +673,7 @@
         localStorage.removeItem(STORAGE_KEY);
         clearPendingStreamMessage();
         renderMessages();
-        fetch('/api/chat/reset', { method: 'POST' }).catch(() => {});
+        fetch('/api/chat/reset', { method: 'POST', headers: authHeaders() }).catch(() => {});
       }
     }
 
