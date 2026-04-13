@@ -4,7 +4,8 @@ import { basename, join, relative, resolve } from 'path';
 import { spawn } from 'child_process';
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname);
-const args = new Set(process.argv.slice(2));
+const rawArgs = process.argv.slice(2);
+const args = new Set(rawArgs);
 const skillSlug = process.env.SKILL_SLUG || 'zhangxuefeng-perspective';
 const binding = process.env.KV_BINDING || 'APP_KV';
 const skillRoot = resolve(projectRoot, 'skills', skillSlug);
@@ -30,6 +31,44 @@ function normalizeRelativePath(filePath) {
 
 function getFileKey(relativePath) {
   return `skill:${skillSlug}:file:${relativePath}`;
+}
+
+function getPersistTo() {
+  const persistArg = rawArgs.find((arg) => arg.startsWith('--persist-to='));
+  if (persistArg) {
+    return persistArg.slice('--persist-to='.length);
+  }
+
+  const persistIndex = rawArgs.indexOf('--persist-to');
+  if (persistIndex !== -1 && rawArgs[persistIndex + 1]) {
+    return rawArgs[persistIndex + 1];
+  }
+
+  return process.env.WRANGLER_PERSIST_TO || '';
+}
+
+function getMode() {
+  if (args.has('--local')) {
+    return 'local';
+  }
+
+  if (args.has('--preview')) {
+    return 'preview';
+  }
+
+  return 'remote';
+}
+
+function getPreviewFlagForLocal() {
+  if (args.has('--preview=false')) {
+    return 'false';
+  }
+
+  if (args.has('--preview')) {
+    return 'true';
+  }
+
+  return 'true';
 }
 
 function runWrangler(commandArgs) {
@@ -121,7 +160,14 @@ async function uploadKey(key, filePath) {
     binding,
   ];
 
-  if (args.has('--preview')) {
+  const mode = getMode();
+  if (mode === 'local') {
+    uploadArgs.push('--local', `--preview=${getPreviewFlagForLocal()}`);
+    const persistTo = getPersistTo();
+    if (persistTo) {
+      uploadArgs.push('--persist-to', persistTo);
+    }
+  } else if (mode === 'preview') {
     uploadArgs.push('--preview');
   } else {
     uploadArgs.push('--remote', '--preview=false');
@@ -149,7 +195,10 @@ async function main() {
     }
 
     const uploadedCount = Object.values(manifest.files).filter((item) => item.text).length;
-    console.log(`已上传 manifest 和 ${uploadedCount} 个文本技能文件到 ${binding}`);
+    const mode = getMode();
+    const persistTo = getPersistTo();
+    const localPreview = mode === 'local' ? `, preview=${getPreviewFlagForLocal()}` : '';
+    console.log(`已上传 manifest 和 ${uploadedCount} 个文本技能文件到 ${binding}（mode=${mode}${localPreview}${persistTo ? `, persist-to=${persistTo}` : ''}）`);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }

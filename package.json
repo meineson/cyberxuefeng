@@ -6,9 +6,11 @@
   "scripts": {
     "build:css": "node scripts/build-tailwind-css.mjs",
     "build": "npm run build:css",
-    "dev": "npm run build && wrangler dev",
+    "dev": "npm run build && wrangler dev --local",
     "deploy": "npm run build && wrangler deploy",
     "kv:sync-skill": "node scripts/sync-skill-to-kv.mjs",
+    "kv:sync-skill:local": "node scripts/sync-skill-to-kv.mjs --local",
+    "kv:sync-skill:local:prod": "node scripts/sync-skill-to-kv.mjs --local --preview=false",
     "test:worker": "node tests/worker.test.js",
     "zhangxuefeng": "npm run dev"
   },

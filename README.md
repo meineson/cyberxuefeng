@@ -165,6 +165,36 @@ npm run kv:sync-skill
 
 两个工具读取。
 
+#### 本地模拟 KV 数据
+
+如果你想给 `wrangler dev --local` 使用的本地模拟 KV 预填充数据，直接运行：
+
+```bash
+npm run kv:sync-skill:local
+```
+
+然后用本地模式启动：
+
+```bash
+npm run dev
+```
+
+说明：
+
+- 本地 KV 数据默认写入 `.wrangler/state`
+- `wrangler dev --local` 默认读取本地 **preview** 侧，因此 `npm run kv:sync-skill:local` 现在也默认写本地 preview 侧
+- 当前脚本支持三种模式：
+  - `npm run kv:sync-skill`：写远端生产 KV
+  - `npm run kv:sync-skill -- --preview`：写远端 preview KV
+  - `npm run kv:sync-skill:local`：写本地模拟 KV（preview 侧，适配 `wrangler dev --local`）
+  - `npm run kv:sync-skill:local:prod`：写本地模拟 KV（production 侧）
+- 如果你自定义了本地状态目录，`sync-skill-to-kv.mjs` 和 `wrangler dev --local` 必须使用同一个 `--persist-to` 路径，例如：
+
+```bash
+node scripts/sync-skill-to-kv.mjs --local --persist-to .wrangler/local-state
+npx wrangler dev --local --persist-to .wrangler/local-state
+```
+
 ### `wrangler.jsonc` 的 `vars` 与 `.dev.vars`
 
 - `wrangler.jsonc` 里的 `vars`：Worker 绑定的普通环境变量，适合放 **非敏感默认配置**
