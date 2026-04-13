@@ -1,4 +1,11 @@
+import { createHash, timingSafeEqual as nodeTimingSafeEqual } from 'node:crypto';
 import { getRuntimeConfig } from './config.js';
+
+function timingSafeStringEqual(a, b) {
+  const aHash = createHash('sha256').update(a).digest();
+  const bHash = createHash('sha256').update(b).digest();
+  return nodeTimingSafeEqual(aHash, bHash);
+}
 
 export function getAuthStatus(env) {
   const { authPassword } = getRuntimeConfig(env);
@@ -19,7 +26,7 @@ export function verifyPassword(env, password) {
     };
   }
 
-  if (password === authPassword) {
+  if (authPassword && timingSafeStringEqual(String(password), authPassword)) {
     return {
       ok: true,
       status: 200,
@@ -39,3 +46,4 @@ export function verifyPassword(env, password) {
     },
   };
 }
+

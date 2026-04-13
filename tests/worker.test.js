@@ -79,6 +79,12 @@ async function request(path, init = {}, env = createEnv()) {
   return worker.fetch(new Request(`https://example.com${path}`, init), env);
 }
 
+function authRequest(path, init = {}, env = createEnv()) {
+  const headers = new Headers(init.headers || {});
+  headers.set('Authorization', 'Bearer test-password');
+  return request(path, { ...init, headers }, env);
+}
+
 async function testHealth() {
   const res = await request('/health');
   const data = await res.json();
@@ -114,12 +120,16 @@ async function testAuthVerify() {
 }
 
 async function testSkillInfo() {
-  const res = await request('/api/skill/info');
+  const res = await authRequest('/api/skill/info');
   const data = await res.json();
   assert.strictEqual(res.status, 200);
   assert.strictEqual(data.success, true);
   assert.strictEqual(data.skill.name, 'zhangxuefeng-perspective');
   assert.ok(Array.isArray(data.skill.tools));
+
+  // 无 token 时应返回 401
+  const unauthRes = await request('/api/skill/info');
+  assert.strictEqual(unauthRes.status, 401);
 }
 
 async function testLimitStatus() {
@@ -131,28 +141,52 @@ async function testLimitStatus() {
 }
 
 async function testChatValidation() {
-  const missingRes = await request('/api/chat', {
+  const missingRes = await authRequest('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
   });
   assert.strictEqual(missingRes.status, 400);
 
-  const tooLongRes = await request('/api/chat', {
+  const tooLongRes = await authRequest('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: 'x'.repeat(301) }),
   });
   assert.strictEqual(tooLongRes.status, 400);
+
+  // 无 token 时 chat 应返回 401
+  const unauthRes = await request('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'hello' }),
+  });
+  assert.strictEqual(unauthRes.status, 401);
+
+  // history 校验：角色非法
+  const badHistoryRes = await authRequest('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'hello', history: [{ role: 'system', content: 'x' }] }),
+  });
+  assert.strictEqual(badHistoryRes.status, 400);
+
+  // history 校验：超出上限
+  const bigHistoryRes = await authRequest('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'hello', history: Array.from({ length: 51 }, () => ({ role: 'human', content: 'x' })) }),
+  });
+  assert.strictEqual(bigHistoryRes.status, 400);
 }
 
 async function testChatResetAndReload() {
-  const resetRes = await request('/api/chat/reset', { method: 'POST' });
+  const resetRes = await authRequest('/api/chat/reset', { method: 'POST' });
   const resetData = await resetRes.json();
   assert.strictEqual(resetRes.status, 200);
   assert.strictEqual(resetData.success, true);
 
-  const reloadRes = await request('/api/reload', { method: 'POST' });
+  const reloadRes = await authRequest('/api/reload', { method: 'POST' });
   const reloadData = await reloadRes.json();
   assert.strictEqual(reloadRes.status, 200);
   assert.strictEqual(reloadData.success, true);

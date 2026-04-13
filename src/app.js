@@ -4,6 +4,9 @@ import { jsonResponse, noContentResponse, parseJsonBody, textResponse } from './
 import { checkRateLimit, getRateLimitStatus, validateInputLength } from './limit.js';
 import { clearSkillCache } from './skill-store.js';
 
+const MAX_HISTORY_ITEMS = 50;
+const MAX_HISTORY_CONTENT_LENGTH = 2000;
+
 function logRequest(message, extra) {
   const timestamp = new Date().toISOString();
   if (extra === undefined) {
@@ -12,6 +15,52 @@ function logRequest(message, extra) {
   }
 
   console.log(`[worker][${timestamp}] ${message}`, extra);
+}
+
+function validateHistory(history) {
+  if (!Array.isArray(history)) {
+    return 'history must be an array';
+  }
+
+  if (history.length > MAX_HISTORY_ITEMS) {
+    return `history too long (max ${MAX_HISTORY_ITEMS} items)`;
+  }
+
+  for (const item of history) {
+    if (!item || typeof item !== 'object') {
+      return 'each history item must be an object';
+    }
+
+    if (item.role !== 'human' && item.role !== 'ai') {
+      return 'history item role must be "human" or "ai"';
+    }
+
+    if (typeof item.content !== 'string') {
+      return 'history item content must be a string';
+    }
+
+    if (item.content.length > MAX_HISTORY_CONTENT_LENGTH) {
+      return `history item content too long (max ${MAX_HISTORY_CONTENT_LENGTH} chars)`;
+    }
+  }
+
+  return null;
+}
+
+function verifyRequestAuth(request, env) {
+  const { required } = getAuthStatus(env);
+  if (!required) {
+    return null;
+  }
+
+  const authHeader = request.headers.get('Authorization') || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const result = verifyPassword(env, token);
+  if (!result.ok) {
+    return jsonResponse({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  return null;
 }
 
 function shouldApplyAppGuards(pathname) {
@@ -24,6 +73,11 @@ function shouldApplyAppGuards(pathname) {
 async function applyAppGuards(request, env, body) {
   if (!shouldApplyAppGuards(new URL(request.url).pathname)) {
     return null;
+  }
+
+  const authError = verifyRequestAuth(request, env);
+  if (authError) {
+    return authError;
   }
 
   const lengthError = validateInputLength(body, env);
@@ -74,9 +128,17 @@ async function handleChat(request, env) {
     });
   }
 
+  const historyError = validateHistory(history);
+  if (historyError) {
+    return jsonResponse({ error: historyError }, {
+      status: 400,
+      headers: guardResult,
+    });
+  }
+
   logRequest('收到聊天请求', {
     stream,
-    historyLength: Array.isArray(history) ? history.length : 0,
+    historyLength: history.length,
     messagePreview: message.slice(0, 120),
   });
 
@@ -115,7 +177,7 @@ async function handleChat(request, env) {
         logRequest('流式聊天异常', { error: error.message });
         controller.enqueue(encoder.encode(buildSseMessage({
           type: 'error',
-          error: error.message || 'Internal server error',
+          error: 'Stream error, please try again',
         })));
       } finally {
         controller.close();
@@ -240,9 +302,9 @@ export async function handleApiRequest(request, env) {
 
     return jsonResponse({
       error: 'Internal server error',
-      message: error.message,
     }, { status: 500 });
   }
 
   return textResponse('Not Found', { status: 404 });
 }
+

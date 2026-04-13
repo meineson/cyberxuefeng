@@ -90,11 +90,14 @@ export async function createAgent(env) {
     tools,
   });
 
+  const MAX_AGENT_ITERATIONS = 10;
+
   const agent = {
     async chat(userMessage, history = []) {
-      const result = await reactAgent.invoke({
-        messages: buildMessages(skill, userMessage, history),
-      });
+      const result = await reactAgent.invoke(
+        { messages: buildMessages(skill, userMessage, history) },
+        { recursionLimit: MAX_AGENT_ITERATIONS },
+      );
       const lastMessage = result.messages[result.messages.length - 1];
       return lastMessage.content;
     },
@@ -102,7 +105,7 @@ export async function createAgent(env) {
     async *streamChat(userMessage, history = []) {
       const eventStream = await reactAgent.streamEvents(
         { messages: buildMessages(skill, userMessage, history) },
-        { version: 'v1' },
+        { version: 'v1', recursionLimit: MAX_AGENT_ITERATIONS },
       );
 
       for await (const event of eventStream) {

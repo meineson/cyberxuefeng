@@ -15,9 +15,7 @@ function getClientIp(request) {
 }
 
 export function getUserKey(request) {
-  const ip = getClientIp(request);
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-  return `${ip}:${userAgent.slice(0, 50)}`;
+  return getClientIp(request);
 }
 
 function getRateLimitTtl(windowMs) {
