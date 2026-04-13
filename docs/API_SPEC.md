@@ -229,8 +229,14 @@
 | `BASE_URL` | LLM API 地址 | `https://coding.dashscope.aliyuncs.com/v1` |
 | `OPENAI_MODEL` | 模型名称 | `glm-5` |
 | `GEMINI_API_KEY` | Gemini 搜索 API 密钥 | `AIza...` |
+| `TAVILY_API_KEY` | Tavily 搜索 API 密钥 | `tvly-...` |
 | `AUTH_PASSWORD` | 访问密码 | `zhangxuefeng2026` |
-| `SKILL_PATH` | 技能路径 | `/Users/mac/.agents/skills/zhangxuefeng-perspective` |
-| `PORT` | 服务端口 | `80` |
+| `SKILL_SLUG` | 当前技能标识 | `zhangxuefeng-perspective` |
 | `MAX_MESSAGE_LENGTH` | 最大消息长度（可选） | `300` |
 | `RATE_LIMIT_MAX` | 每分钟请求限制（可选） | `5` |
+
+说明：
+
+- 当前 Cloudflare Workers 版本从 `APP_KV` 读取技能资料，不再使用本地 `SKILL_PATH`
+- 本地开发可使用 `.dev.vars`
+- 线上部署的敏感变量建议通过 `npx wrangler secret put <NAME>` 注入

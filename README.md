@@ -130,6 +130,10 @@ npm install
 npx wrangler kv namespace create cyberxuefeng-preview --preview --update-config=false
 npx wrangler kv namespace create cyberxuefeng-production --update-config=false
 # 把返回的 namespace id 填到 wrangler.jsonc
+npx wrangler secret put API_KEY
+npx wrangler secret put AUTH_PASSWORD
+npx wrangler secret put TAVILY_API_KEY
+npx wrangler secret put GEMINI_API_KEY
 npm run kv:sync-skill
 npm run dev
 ```
@@ -143,6 +147,8 @@ npm run dev
 ```bash
 npm run deploy
 ```
+
+当前线上部署已验证可用，关键变量通过 `npx wrangler secret put <NAME>` 注入 Worker。
 
 ### 技能资料同步到 KV
 
@@ -162,13 +168,15 @@ npm run kv:sync-skill
 ### `wrangler.jsonc` 的 `vars` 与 `.dev.vars`
 
 - `wrangler.jsonc` 里的 `vars`：Worker 绑定的普通环境变量，适合放 **非敏感默认配置**
-- `.dev.vars`：本地开发时常被用来放 **敏感值**，但你当前安装的 Wrangler 是 `4.81.1`，建议不要把它当唯一来源
+- `.dev.vars`：本地开发可用的 dotenv 文件，适合本地调试时放密钥
+- `wrangler secret put`：线上/远端部署时的密钥注入方式，适合放真正的敏感值
 
 这套项目里建议这样用：
 
 - `vars` 放：`SKILL_SLUG`、`SEARCH_PROVIDER`、`OPENAI_MODEL`、限流阈值
+- 本地开发可放到 `.dev.vars`：`API_KEY`、`BASE_URL`、`AUTH_PASSWORD`、`GEMINI_API_KEY`、`TAVILY_API_KEY`
+- 线上部署统一用 `wrangler secret put`
 - **不要**把 `API_KEY` 这类密钥写进 `vars`
-- 生产密钥用 `wrangler secret put`
 
 另外，本项目的 `kv_namespaces.APP_KV` 已设置 `"remote": true`，所以 `wrangler dev` 会直接访问你配置的远端 KV，而不是本地模拟 KV。
 

@@ -6,6 +6,13 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "traces": {}
+  },
 	"assets": {
 		"directory": "./public",
 		"binding": "ASSETS"
@@ -21,6 +28,7 @@
 	"vars": {
 		"SKILL_SLUG": "zhangxuefeng-perspective",
 		"SEARCH_PROVIDER": "tavily",
+		"BASE_URL": "https://coding.dashscope.aliyuncs.com/v1",
 		"OPENAI_MODEL": "glm-5",
 		"MAX_MESSAGE_LENGTH": "300",
 		"RATE_LIMIT_MAX": "5",
