@@ -123,7 +123,7 @@
 
 ---
 
-## 启动（Cloudflare Workers）
+## 发布到CF（Cloudflare Workers）
 
 ```bash
 npm install
@@ -135,80 +135,26 @@ npx wrangler secret put AUTH_PASSWORD
 npx wrangler secret put TAVILY_API_KEY
 npx wrangler secret put GEMINI_API_KEY
 npm run kv:sync-skill
-npm run dev
-```
-
-本地启动后访问：
-
-- `http://localhost:8787`
-
-### 部署
-
-```bash
 npm run deploy
 ```
 
-当前线上部署已验证可用，关键变量通过 `npx wrangler secret put <NAME>` 注入 Worker。
-
-### 技能资料同步到 KV
-
-当前分支默认从 Cloudflare KV 读取技能内容，不再依赖本地 `SKILL_PATH`。
-
-```bash
-npm run kv:sync-skill
-```
-
-默认会把 `skills/zhangxuefeng-perspective` 下的文本资料上传到 `APP_KV`，并生成目录索引供：
-
-- `list_skill_files`
-- `read_skill_file`
-
-两个工具读取。
-
-#### 本地模拟 KV 数据
-
-如果你想给 `wrangler dev --local` 使用的本地模拟 KV 预填充数据，直接运行：
+### 本地开发测试
 
 ```bash
 npm run kv:sync-skill:local
-```
-
-然后用本地模式启动：
-
-```bash
 npm run dev
 ```
+访问：
+http://localhost:8788
 
 说明：
-
 - 本地 KV 数据默认写入 `.wrangler/state`
 - `wrangler dev --local` 默认读取本地 **preview** 侧，因此 `npm run kv:sync-skill:local` 现在也默认写本地 preview 侧
-- 当前脚本支持三种模式：
-  - `npm run kv:sync-skill`：写远端生产 KV
-  - `npm run kv:sync-skill -- --preview`：写远端 preview KV
-  - `npm run kv:sync-skill:local`：写本地模拟 KV（preview 侧，适配 `wrangler dev --local`）
-  - `npm run kv:sync-skill:local:prod`：写本地模拟 KV（production 侧）
-- 如果你自定义了本地状态目录，`sync-skill-to-kv.mjs` 和 `wrangler dev --local` 必须使用同一个 `--persist-to` 路径，例如：
-
-```bash
-node scripts/sync-skill-to-kv.mjs --local --persist-to .wrangler/local-state
-npx wrangler dev --local --persist-to .wrangler/local-state
-```
 
 ### `wrangler.jsonc` 的 `vars` 与 `.dev.vars`
-
 - `wrangler.jsonc` 里的 `vars`：Worker 绑定的普通环境变量，适合放 **非敏感默认配置**
 - `.dev.vars`：本地开发可用的 dotenv 文件，适合本地调试时放密钥
 - `wrangler secret put`：线上/远端部署时的密钥注入方式，适合放真正的敏感值
-
-这套项目里建议这样用：
-
-- `vars` 放：`SKILL_SLUG`、`SEARCH_PROVIDER`、`OPENAI_MODEL`、限流阈值
-- 本地开发可放到 `.dev.vars`：`API_KEY`、`BASE_URL`、`AUTH_PASSWORD`、`GEMINI_API_KEY`、`TAVILY_API_KEY`
-- 线上部署统一用 `wrangler secret put`
-- **不要**把 `API_KEY` 这类密钥写进 `vars`
-
-另外，本项目的 `kv_namespaces.APP_KV` 已设置 `"remote": true`，所以 `wrangler dev` 会直接访问你配置的远端 KV，而不是本地模拟 KV。
 
 ---
 
